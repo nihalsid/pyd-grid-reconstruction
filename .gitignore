@@ -1,0 +1,17 @@
+.vs/
+build/
+*.pdb
+*.obj
+*.cache
+*.deps
+*.tlog
+*.log
+*.lastbuildstate
+*.exe
+*.exp
+*.ipdb
+*.iobj
+*.ilk
+*.idb
+*.pyd
+*.lib
