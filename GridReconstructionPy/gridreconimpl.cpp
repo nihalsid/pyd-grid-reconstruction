@@ -78,11 +78,11 @@ extern "C" float **pymatrix_to_Carrayptrs(PyArrayObject *arrayin) {
 	m = arrayin->dimensions[1];
 	c = ptrvector(n);
 	a = (float *)arrayin->data;  /* pointer to arrayin data as double */
-	printf("Before access\n");
+	
 	for (i = 0; i<n; i++) {
 		c[i] = a + i * m;
 	}
-	printf("After access\n");
+	
 	return c;
 }
 
@@ -93,7 +93,6 @@ extern "C" void free_Carrayptrs(float **v) {
 extern "C" int applyGammaFilter(PyArrayObject* image_in, float thres3, float thres5, float thres7, float sig_log, PyArrayObject* image_out) {
 	int height = image_in->dimensions[0];
 	int width = image_in->dimensions[1];
-	printf("W/H=%d, %d, %f, %f, %f\n", width, height, thres3, thres5, thres7);
 	
 	float* h_image_in = (float*)image_in->data;
 	float* h_image_out = (float*)image_out->data;
@@ -164,7 +163,6 @@ extern "C" int applyGammaFilter(PyArrayObject* image_in, float thres3, float thr
 		ERROR_CHECK;
 	}
 
-
 	logical_operation(d_image_thres5, d_image_thres7, d_bool_buffer, width, height, BooleanOperation::OR);
 	ERROR_CHECK;
 	logical_operation(d_bool_buffer, d_image_thres7, d_image_thres5, width, height, BooleanOperation::XOR);
@@ -185,7 +183,7 @@ extern "C" int applyGammaFilter(PyArrayObject* image_in, float thres3, float thr
 	//multiply_constant(d_image_thres3, d_image_buffer_0, width, height, 1.f);
 
 	move_gpu_data_to_host<float>(h_image_out, d_image_adp, width, height);
-
+	 
 	free_gpu_buffers<float, float>(d_image_in, d_image_log);
 	free_gpu_buffer<float>(d_image_log_m3);
 	free_gpu_buffer<float>(d_image_buffer_0);

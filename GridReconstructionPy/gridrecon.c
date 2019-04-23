@@ -40,7 +40,7 @@ static PyObject* gam_rem_adp_log(PyObject* self, PyObject* args) {
 	/* Parse tuples separately since args will differ between C fcns */
 	if (!PyArg_ParseTuple(args, "O!O!ffff", &PyArray_Type, &image_in, &PyArray_Type, &image_out, &thr3, &thr5, &thr7, &sig_log))
 		return NULL;
-	printf("image_in, image_out=%ld,%ld\n", image_in, image_out);
+
 	applyGammaFilter(image_in, thr3, thr5, thr7, sig_log, image_out);
 	return Py_True;
 }
