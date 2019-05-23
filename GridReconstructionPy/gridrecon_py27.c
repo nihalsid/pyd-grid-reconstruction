@@ -21,7 +21,6 @@ static PyObject* log_filter(PyObject* self, PyObject* args)
 	//*/
 	int nd = 2;
 	int dims[2] = {N, N};
-	printf("Sigma: %f\n", sigma);
 	out_array = (PyArrayObject *) PyArray_FromDims(nd, dims, NPY_FLOAT);
 	createAndFillLogFilter(N, (float)sigma, out_array);
 
@@ -40,9 +39,8 @@ static PyObject* gam_rem_adp_log(PyObject* self, PyObject* args) {
 	/* Parse tuples separately since args will differ between C fcns */
 	if (!PyArg_ParseTuple(args, "O!O!ffff", &PyArray_Type, &image_in, &PyArray_Type, &image_out, &thr3, &thr5, &thr7, &sig_log))
 		return NULL;
-	printf("image_in, image_out=%ld,%ld\n", image_in, image_out);
 	applyGammaFilter(image_in, thr3, thr5, thr7, sig_log, image_out);
-	return Py_True;
+	Py_RETURN_TRUE;
 }
 
 
@@ -54,17 +52,10 @@ static PyMethodDef GridReconMethods[] =
 	{ NULL, NULL, 0, NULL }
 };
 
-static struct PyModuleDef cGridReconModule =
-{
-	PyModuleDef_HEAD_INIT,
-	"gridrecon", "Python module for grid reconstruction for FRMII",
-	-1,
-	GridReconMethods
-};
 
 PyMODINIT_FUNC
-PyInit_gridrecon(void)
+initgridrecon(void)
 {
+	(void) Py_InitModule("gridrecon", GridReconMethods);
 	import_array();
-	return PyModule_Create(&cGridReconModule);
 }
