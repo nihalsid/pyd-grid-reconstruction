@@ -94,7 +94,6 @@ extern "C" void free_Carrayptrs(float **v) {
 extern "C" void* applyGammaFilter(void* _args) {
 	struct Arguments* args = (struct Arguments*)_args;
 	
-	int image_index = args->image_index;
 	PyArrayObject* image_in = args->image_in;
 	float thres3 = args->thres3;
 	float thres5 = args->thres5;
@@ -102,13 +101,13 @@ extern "C" void* applyGammaFilter(void* _args) {
 	float sig_log = args->sig_log;
 	PyArrayObject* image_out = args->image_out;
 	
-	int height = image_in->dimensions[1];
-	int width = image_in->dimensions[2];
-	printf("\n%p, %d->%d, %p", image_in->data, image_index, image_index * height * width, image_in->data + image_index * height * width);
-	printf("\n%p, %d->%d, %p", image_out->data, image_index, image_index * height * width, image_out->data + image_index * height * width);
+	int height = image_in->dimensions[0];
+	int width = image_in->dimensions[1];
+	//printf("[IN ]%p\n", image_in->data);
+	//printf("[OUT]%p\n", image_out->data);
 	
-	float* h_image_in = (float*)(image_in->data + image_index * height * width);
-	float* h_image_out = (float*)(image_out->data + image_index * height * width);
+	float* h_image_in = (float*)(image_in->data);
+	float* h_image_out = (float*)(image_out->data);
 	
 	float* d_log_filter = nullptr;
 	float* d_box_filter_normalized = nullptr;
@@ -214,5 +213,6 @@ extern "C" void* applyGammaFilter(void* _args) {
 	free_gpu_buffer<bool>(d_bool_buffer);
 	free_gpu_buffer<bool>(d_true_mask);
 	
+	free(_args);
 	pthread_exit((void*)NULL);
 }

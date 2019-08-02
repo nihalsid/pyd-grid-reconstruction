@@ -5,7 +5,6 @@
 #include <numpy/arrayobject.h>
 
 struct Arguments {
-	int image_index;
 	PyArrayObject* image_in;
 	float thres3;
 	float thres5;

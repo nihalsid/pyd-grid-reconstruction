@@ -8,6 +8,7 @@ from gam_rem_adp_log import gam_rem_adp_log
 import numpy as np
 import pyfits
 import matplotlib.pyplot as plt
+import time
 
 
 def compare_arrays(array1, array2):
@@ -23,26 +24,32 @@ def test_gam_rem_adp_log(filelist):
 	ymax=2000	
 	
 	reads = []
+	writes = []
 	for f in filelist:
-		reads.append(pyfits.open(f)[0].data[ymin:ymax,xmin:xmax])
-
-	cuda_input = np.ascontiguousarray(np.dstack(reads).transpose((2,0,1)), dtype=np.float32)
-	cuda_output = np.ascontiguousarray(np.zeros(cuda_input.shape, dtype=np.float32), dtype=np.float32)
-	gridrecon.gam_rem_adp_log(cuda_input, cuda_output, 50, 100, 200, 0.8, 1)
+		reads.append(np.ascontiguousarray(pyfits.open(f)[0].data[ymin:ymax,xmin:xmax], dtype=np.float32))
+		writes.append(np.ascontiguousarray(np.zeros(reads[-1].shape, dtype=np.float32), dtype=np.float32))
 	
+	t1 = time.time()
+	gridrecon.gam_rem_adp_log(reads, writes, 50, 100, 200, 0.8, 4)
+	print('C++: ', time.time() - t1)
 	python_outputs = []
 	
+	t1 = time.time()
 	for r in reads:
 		python_outputs.append(gam_rem_adp_log(r,50,100,200,0.8))
 
+	print('Python: ', time.time() - t1)
+	
 	for i in range(len(reads)):
-		close, inner_close = compare_arrays(cuda_output[i, :, :], python_outputs[i])
-		print("Inner closeness value = %.4f [~1]" % inner_close)
-		print("Closeness value = %.4f [~0.99]" % close)
+		close, inner_close = compare_arrays(writes[i], python_outputs[i])
+		assert inner_close >= (1 - 1e-5), "Inner closeness value = %.4f" % inner_close
+		assert close >= 0.99, "Closeness value = %.4f" % close
+		#print("Inner closeness value = %.4f [~1]" % inner_close)
+		#print("Closeness value = %.4f [~0.99]" % close)
 
 if __name__=='__main__':
 	test_images_dir = r'../../fits'
 	test_images = [os.path.join(test_images_dir, x) for x in os.listdir(test_images_dir) if x.endswith('.fits')]
-	test_images = test_images[:2]
+	test_images = test_images[:8]
 	test_gam_rem_adp_log(test_images)
 
