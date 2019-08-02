@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0,r'C:\Users\Yawar\Documents\FRM-II\c++\GridReconstructionPy\x64\Release')
+sys.path.insert(0,'/home/nihalsid/Documents/FRM-II/git/pyd-grid-reconstruction/bin')
 import gridrecon
 import unittest
 import os
@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 def compare_arrays(array1, array2):
 	isclose = np.isclose(array1, array2, rtol=1e-2, atol=1e-5)
 	inner_isclose = np.isclose(array1[50:-50,50:-50], array2[50:-50,50:-50], rtol=1e-2, atol=1e-5)
-	return np.sum(isclose == True) / (array1.shape[0] * array1.shape[1]), np.sum(inner_isclose == True) / (inner_isclose.shape[0] * inner_isclose.shape[1])
+	return np.sum(isclose == True) * 1.0 / (array1.shape[0] * array1.shape[1]), np.sum(inner_isclose == True) * 1.0 / (inner_isclose.shape[0] * inner_isclose.shape[1])
 
 
 class ParameterizedTestCase(unittest.TestCase):
@@ -41,11 +41,13 @@ class TestCudaVsPython(ParameterizedTestCase):
 		xmax=1000
 		ymin=45
 		ymax=2000	
-		img =  np.ascontiguousarray(pyfits.open(self.param)[0].data[ymin:ymax,xmin:xmax], dtype=np.float32)
+		pyfit_read = pyfits.open(self.param)[0].data[ymin:ymax,xmin:xmax]
+		cuda_input = np.expand_dims(pyfit_read, 0)
+		img =  np.ascontiguousarray(cuda_input, dtype=np.float32)
 		cuda_output = np.ascontiguousarray(np.zeros(img.shape, dtype=np.float32), dtype=np.float32)
-		python_output = gam_rem_adp_log(img,50,100,200,0.8)
-		gridrecon.gam_rem_adp_log(img, cuda_output, 50,100,200,0.8)
-		close, inner_close = compare_arrays(cuda_output, python_output)
+		python_output = gam_rem_adp_log(pyfit_read,50,100,200,0.8)
+		gridrecon.gam_rem_adp_log(img, cuda_output, 50,100,200,0.8, 1)
+		close, inner_close = compare_arrays(cuda_output[0, :, :], python_output)
 		assert inner_close >= (1 - 1e-5), "Inner closeness value = %.4f" % inner_close
 		assert close >= 0.99, "Closeness value = %.4f" % close
 
@@ -56,9 +58,9 @@ class TestCudaVsPython(ParameterizedTestCase):
 
 if __name__=='__main__':
 
-	test_images_dir = r'C:\Users\Yawar\Documents\FRM-II\fits'
+	test_images_dir = r'../../fits'
 	test_images = [x for x in os.listdir(test_images_dir) if x.endswith('.fits')]
-
+	test_images = test_images[:2]
 	suite = unittest.TestSuite()
 	for test_image in test_images:
 		path = os.path.join(test_images_dir, test_image)

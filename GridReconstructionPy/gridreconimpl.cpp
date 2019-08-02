@@ -6,8 +6,9 @@
 #include "cuda_ops.h"
 #include <cuda_runtime.h>
 #include <npp.h>
-
+#include <pthread.h>
 #include <memory>
+#include "arguments.h"
 
 #define ERROR_CHECK \
 	gpuErrchk(cudaPeekAtLastError()); \
@@ -90,13 +91,24 @@ extern "C" void free_Carrayptrs(float **v) {
 	free((char*)v);
 }
 
-extern "C" int applyGammaFilter(PyArrayObject* image_in, float thres3, float thres5, float thres7, float sig_log, PyArrayObject* image_out) {
-	int height = image_in->dimensions[0];
-	int width = image_in->dimensions[1];
-
+extern "C" void* applyGammaFilter(void* _args) {
+	struct Arguments* args = (struct Arguments*)_args;
 	
-	float* h_image_in = (float*)image_in->data;
-	float* h_image_out = (float*)image_out->data;
+	int image_index = args->image_index;
+	PyArrayObject* image_in = args->image_in;
+	float thres3 = args->thres3;
+	float thres5 = args->thres5;
+	float thres7 = args->thres7;
+	float sig_log = args->sig_log;
+	PyArrayObject* image_out = args->image_out;
+	
+	int height = image_in->dimensions[1];
+	int width = image_in->dimensions[2];
+	printf("\n%p, %d->%d, %p", image_in->data, image_index, image_index * height * width, image_in->data + image_index * height * width);
+	printf("\n%p, %d->%d, %p", image_out->data, image_index, image_index * height * width, image_out->data + image_index * height * width);
+	
+	float* h_image_in = (float*)(image_in->data + image_index * height * width);
+	float* h_image_out = (float*)(image_out->data + image_index * height * width);
 	
 	float* d_log_filter = nullptr;
 	float* d_box_filter_normalized = nullptr;
@@ -202,5 +214,5 @@ extern "C" int applyGammaFilter(PyArrayObject* image_in, float thres3, float thr
 	free_gpu_buffer<bool>(d_bool_buffer);
 	free_gpu_buffer<bool>(d_true_mask);
 	
-	return 0;
+	pthread_exit((void*)NULL);
 }

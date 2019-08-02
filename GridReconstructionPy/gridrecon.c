@@ -4,7 +4,7 @@
 
 
 int createAndFillLogFilter(int N, float sigma, PyArrayObject* out_array);
-int applyGammaFilter(PyArrayObject* image_in, float thres3, float thres5, float thres7, float sig_log, PyArrayObject* image_out);
+int applyGammaFilter(int image_index, PyArrayObject* image_in, float thres3, float thres5, float thres7, float sig_log, PyArrayObject* image_out);
 
 /*  wrapped function */
 static PyObject* log_filter(PyObject* self, PyObject* args)

@@ -1,20 +1,23 @@
 #define PY_ARRAY_UNIQUE_SYMBOL gridrecon_ARRAY_API
 #include <Python.h>
 #include <numpy/arrayobject.h>
-
+#include <pthread.h>
+#include "arguments.h"
+#define MAX_NUM_THREADS 128
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 int createAndFillLogFilter(int N, float sigma, PyArrayObject* out_array);
-int applyGammaFilter(PyArrayObject* image_in, float thres3, float thres5, float thres7, float sig_log, PyArrayObject* image_out);
+void* applyGammaFilter(void* args);
 
 /*  wrapped function */
-static PyObject* log_filter(PyObject* self, PyObject* args)
+static PyObject* log_filter(PyObject* self, PyObject* _args)
 {
 	int N;
 	float sigma;
 	PyObject *out_array = NULL;
 	PyArray_Descr *dtype = NULL;
 	///*  parse the input, from python float to c double */
-	if (!PyArg_ParseTuple(args, "if", &N, &sigma))
+	if (!PyArg_ParseTuple(_args, "if", &N, &sigma))
 		return NULL;
 	///* if the above function returns -1, an appropriate Python exception will
 	//* have been set, and the function simply returns NULL
@@ -36,10 +39,31 @@ static PyObject* gam_rem_adp_log(PyObject* self, PyObject* args) {
 	PyArrayObject *image_in, *image_out;
 	float thr3, thr5, thr7;
 	float sig_log;
+	int num_threads;
 	/* Parse tuples separately since args will differ between C fcns */
-	if (!PyArg_ParseTuple(args, "O!O!ffff", &PyArray_Type, &image_in, &PyArray_Type, &image_out, &thr3, &thr5, &thr7, &sig_log))
+	if (!PyArg_ParseTuple(args, "O!O!ffffi", &PyArray_Type, &image_in, &PyArray_Type, &image_out, &thr3, &thr5, &thr7, &sig_log, &num_threads))
 		return NULL;
-	applyGammaFilter(image_in, thr3, thr5, thr7, sig_log, image_out);
+	pthread_t thread_ids[MAX_NUM_THREADS];
+	int total_images = image_in->dimensions[0];
+	int current_image_index = 0;
+	while(current_image_index < total_images){
+		int num_required_threads = MIN(total_images - current_image_index, num_threads); 
+		for (int i = 0; i < num_required_threads; i++) {
+			struct Arguments* _args = malloc(sizeof(struct Arguments));
+			_args->image_index = current_image_index;
+			_args->image_in = image_in;
+			_args->thres3 = thr3;
+			_args->thres5 = thr5;
+			_args->thres7 = thr7;
+			_args->sig_log = sig_log;
+			_args->image_out = image_out;
+			assert(pthread_create(&thread_ids[i], NULL, applyGammaFilter, _args) == 0);
+			current_image_index++;
+		}
+		for (int i = 0; i < num_required_threads; i++) {
+			assert(pthread_join(thread_ids[i], NULL) == 0);
+		}
+	}
 	Py_RETURN_TRUE;
 }
 
